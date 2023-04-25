@@ -289,7 +289,7 @@ class JsonDictTypeFilter(sa.types.TypeDecorator):
         for i in value.keys():
             temp = {}
             temp['name'] = i
-            temp['size'] = int(value[i]['size'])
+            temp['size'] = int(value[i]['size'].replace(',',''))
             temp['timestamp'] = int(value[i]['stat'])
             result.append(temp)
 
