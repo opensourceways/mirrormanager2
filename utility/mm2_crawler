@@ -46,7 +46,7 @@ shutdown=False
 
 # our own private copy of country_continents to be edited
 country_continents = {}
-gi = geoip2.database.Reader('./parameter/GeoLite2-Country.mmdb')
+gi = geoip2.database.Reader('./config/GeoLite2-Country.mmdb')
 # hard coded list of continents; let's hope this does not change all the time
 # this is according to GeoIP
 continents = ['AF', 'AN', 'AS', 'EU', 'NA', 'OC', 'SA', '--' ]
@@ -96,7 +96,7 @@ def thread_id():
 # Add the information from the country_continent_redirect table to
 # country_continents information from GeoIP
 def handle_country_continent_redirect(session):
-    country_continent_csv = './parameter/country_continent.csv'
+    country_continent_csv = './config/country_continent.csv'
     new_country_continents = {}
     with open(country_continent_csv, mode='r') as infile:
         reader = csv.reader(infile)

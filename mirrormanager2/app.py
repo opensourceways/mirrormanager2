@@ -1358,10 +1358,10 @@ def rsyncFilter():
 
 
 @APP.route('/oidc_login')
-#@OIDC.require_login
+@OIDC.require_login
 def oidc_login():  # pragma: no cover
     return flask.redirect(flask.request.values['next'])
-    
+
 
 @APP.route('/login', methods=['GET', 'POST'])
 def auth_login():  # pragma: no cover

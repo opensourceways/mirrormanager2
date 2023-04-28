@@ -344,7 +344,6 @@ def _check_session_cookie():
 
     if cookie_name and cookie_name in flask.request.cookies:
         sessionid = flask.request.cookies[cookie_name]
-        #sessionid = "BFZN1P4GQBOWO8D5TEWKPCGVM77GNLTRMRS321QP"
         session = mirrormanager2.lib.get_session_by_visitkey(
             SESSION, sessionid)
         if session and session.user:
@@ -391,7 +390,7 @@ def _send_session_cookie(response):
     response.set_cookie(
         key=cookie_name,
         value=flask.g.fas_session_id or '',
-        #secure=secure,
+        secure=secure, # don't set secure to True when start server with http
         httponly=True,
     )
 
