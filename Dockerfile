@@ -2,7 +2,7 @@ FROM fedora:37
 
 WORKDIR /src/mirrormanager2
 
-RUN curl https://bootstrap.pypa.io/pip/3.6/get-pip.py -o get-pip.py && python3 get-pip.py
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3 get-pip.py
 
 COPY . .
 
