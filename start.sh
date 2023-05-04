@@ -42,5 +42,6 @@ python3 createdb.py
 
 # step 3. run server
 
-python3 runserver.py --host 0.0.0.0 --port $port
+sleep 10000000
+#python3 runserver.py --host 0.0.0.0 --port $port
 
