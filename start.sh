@@ -31,17 +31,30 @@ sed -i "s|{ADMIN_GROUP}|$ADMIN_GROUP|"  $f
 
 f=utility/config/mirrormanager2.cfg
 
+prefix=$UMDL_PREFIX
+if [ "$(basename $prefix)" != "openeuler" ]; then
+    echo "invalid UMDL_PREFIX: $UMDL_PREFIX"
+    exit 1
+fi
+prefix=$(dirname $prefix)
+
+sed -i "s|{UMDL_PREFIX}|$prefix|"  $f
 sed -i "s|{DB_URL}|$DB_URL|"  $f
 sed -i "s|{SECRET_KEY}|$SECRET_KEY|"  $f
 sed -i "s|{PASSWORD_SEED}|$PASSWORD_SEED|"  $f
-sed -i "s|{UMDL_PREFIX}|$UMDL_PREFIX|"  $f
 
 # step 2. create db
 
 python3 createdb.py
 
-# step 3. run server
+# step 3. fix the lib
+sed -i '225s/)/, quote_via=urllib.parse.quote)/' /usr/local/lib/python3.11/site-packages/oauth2client/_helpers.py
 
-sleep 10000000
-#python3 runserver.py --host 0.0.0.0 --port $port
+# step 4. run server
+python3 runserver.py --host 0.0.0.0 --port $port
 
+# even the service above is killed manually, then we can start it again but will not kill the container
+while true
+do
+    sleep 1
+done
