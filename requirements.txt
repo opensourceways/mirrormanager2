@@ -16,3 +16,4 @@ munch
 itsdangerous==2.0.1
 flask-xml-rpc-re
 psycopg2-binary
+geoip2
