@@ -43,6 +43,10 @@ sed -i "s|{DB_URL}|$DB_URL|"  $f
 sed -i "s|{SECRET_KEY}|$SECRET_KEY|"  $f
 sed -i "s|{PASSWORD_SEED}|$PASSWORD_SEED|"  $f
 
+mm_log_dir=$(pwd)/utility/logs
+mkdir -p $mm_log_dir/crawler
+sed -i "s|{MM_LOG_DIR}|$mm_log_dir|"  $f
+
 # step 2. create db
 
 python3 createdb.py
