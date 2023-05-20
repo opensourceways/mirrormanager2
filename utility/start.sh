@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/bash
 
 cd $(dirname $0)
 
@@ -24,6 +24,16 @@ sed -i "s|{MM_LOG_DIR}|$mm_log_dir|"  $f
 
 ###
 
+log() {
+    echo "$(date), $1"
+}
+
+secondsOf12h=43200
+
+log "start"
+
+set +e
+
 while true
 do
     ./mm2_update-master-directory-list -c ./config/mirrormanager2.cfg --logfile log --delete-directories > /dev/null 2>&1
@@ -31,8 +41,17 @@ do
     # adjust the threads num by env
     threads=${THREADS:-5}
 
+    SECONDS=0
+
     # avoid the python threads to be blocked by timeout
     timeout -k 10 12h ./mm2_crawler -c config/mirrormanager2.cfg --include-private -t $threads --disable-fedmsg > /dev/null 2>&1
 
-    echo "run again after a short break"
+    seconds=$SECONDS
+    log "mm2_crawler done after $seconds seconds"
+
+    if [ $seconds -lt $secondsOf12h ]; then
+        sleep $(($secondsOf12h - $seconds))
+    fi
+
+    log "run again after a short break"
 done
