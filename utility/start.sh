@@ -28,30 +28,61 @@ log() {
     echo "$(date), $1"
 }
 
-secondsOf12h=43200
+update_master_directory_list() {
+    local seconds=0
+    local secondsOf2h=7200
 
-log "start"
+    set +e
 
-set +e
+    while true
+    do
+        log "start mm2_update-master-directory-list"
+
+        SECONDS=0
+
+        timeout -k 10 2h ./mm2_update-master-directory-list -c ./config/mirrormanager2.cfg --logfile log --delete-directories > /dev/null 2>&1
+
+        seconds=$SECONDS
+        log "mm2_update-master-directory-list done after $seconds seconds"
+
+        if [ $seconds -lt $secondsOf2h ]; then
+            sleep $(($secondsOf2h - $seconds))
+        fi
+    done
+}
+
+update_mm2_crawler() {
+    local seconds=0
+    local secondsOf12h=43200
+
+    set +e
+
+    while true
+    do
+        log "start mm2_crawler"
+
+        # adjust the threads num by env
+        threads=${THREADS:-5}
+
+        SECONDS=0
+
+        # avoid the python threads to be blocked by timeout
+        timeout -k 10 12h ./mm2_crawler -c config/mirrormanager2.cfg --include-private -t $threads --disable-fedmsg > /dev/null 2>&1
+
+        seconds=$SECONDS
+        log "mm2_crawler done after $seconds seconds"
+
+        if [ $seconds -lt $secondsOf12h ]; then
+            sleep $(($secondsOf12h - $seconds))
+        fi
+    done
+}
+
+update_master_directory_list &
+
+update_mm2_crawler &
 
 while true
 do
-    ./mm2_update-master-directory-list -c ./config/mirrormanager2.cfg --logfile log --delete-directories > /dev/null 2>&1
-
-    # adjust the threads num by env
-    threads=${THREADS:-5}
-
-    SECONDS=0
-
-    # avoid the python threads to be blocked by timeout
-    timeout -k 10 12h ./mm2_crawler -c config/mirrormanager2.cfg --include-private -t $threads --disable-fedmsg > /dev/null 2>&1
-
-    seconds=$SECONDS
-    log "mm2_crawler done after $seconds seconds"
-
-    if [ $seconds -lt $secondsOf12h ]; then
-        sleep $(($secondsOf12h - $seconds))
-    fi
-
-    log "run again after a short break"
+    sleep 1
 done
