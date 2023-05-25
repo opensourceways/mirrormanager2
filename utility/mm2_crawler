@@ -189,8 +189,6 @@ def doit(options, config):
     all_hosts = len(hosts)
     threads = options.threads
 
-    print("hosts=", hosts)
-
     # And then, for debugging, only do one host
     #hosts = [hosts.next()]
 
@@ -589,7 +587,7 @@ def check_ftp_file(hoststate, url, filedata, readable):
         if filedata is None:
             # The file/directory seems to exist
             return True
-        if float(line[4]) == float(filedata['size']):
+        if float(line[4].replace(',', '')) == float(filedata['size']):
             return True
     return False
 
@@ -638,7 +636,7 @@ def check_head(hoststate, url, filedata, recursion, readable, retry=0):
                          'Connection': 'Keep-Alive',
                          'Pragma': 'no-cache',
                          'User-Agent': 'mirrormanager-crawler/0.1 (+https://'
-                         'github.com/fedora-infra/mirrormanager2/)'})
+                         'github.com/opensourceways/mirrormanager2/)'})
         r = conn.getresponse()
         status = r.status
     except:
@@ -659,11 +657,7 @@ def check_head(hoststate, url, filedata, recursion, readable, retry=0):
 
     conn.end_request()
 
-    try:
-        keepalive_ok = r.keepalive_ok()
-    except Exception as ex:
-        print("fuck, ex = ", ex)
-
+    keepalive_ok = r.keepalive_ok()
     if keepalive_ok:
         hoststate.keepalives_available = True
     if not keepalive_ok:
@@ -737,6 +731,8 @@ def report_stats(stats):
 
 
 def sync_hcds(session, host, host_category_dirs, options):
+    logger.info("start sync_hcds")
+
     stats = dict(up2date=0, not_up2date=0, unchanged=0, unreadable=0,
                  unknown=0, newdir=0, deleted_on_master=0, duration=0)
     current_hcds = {}
@@ -778,7 +774,7 @@ def sync_hcds(session, host, host_category_dirs, options):
                     "Directory %s is not up-to-date on this host." % d.name)
                 stats['not_up2date'] += 1
             else:
-                logger.info(d.name)
+                #logger.info(d.name)
                 stats['up2date'] += 1
         else:
             stats['unchanged'] += 1
@@ -845,7 +841,7 @@ def add_parents(session, host_category_dirs, hc, d):
     if parentDir is not None:
         if (hc, parentDir) not in host_category_dirs:
             host_category_dirs[(hc, parentDir)] = None
-            logger.info("add_parents, parent is none: %s" % parentDir.name)
+            # logger.info("add_parents, parent is none: %s" % parentDir.name)
 
         if parentDir != hc.category.topdir: # stop at top of the category
             return add_parents(session, host_category_dirs, hc, parentDir)
@@ -972,20 +968,19 @@ def try_per_category(
     # run_rsync() returns a temporary file which needs to be closed
     listing.close()
 
-    logger.debug("rsync listing has %d lines" % len(rsync))
+    logger.info("rsync listing has %d lines" % len(rsync))
     if len(rsync) == 0:
         # no rsync content, fail!
         return False
     # for all directories in this category
     for d in trydirs:
-        logger.debug(d.name)
         # Check if maximum crawl time for this host has been reached
         timeout_check()
 
         # ignore unreadable directories - we can't really know about them
         if not d.readable:
             host_category_dirs[(hc, d)] = None
-            logger.debug("unreadable")
+            logger.info("unreadable: %s", d.name)
             continue
 
         all_files = True
@@ -996,7 +991,7 @@ def try_per_category(
         # of the current directory. umdl copies the pickled dict
         # into the database. It is either a dict or nothing.
         if not isinstance(d.files, dict):
-            logger.debug("files is not dict")
+            logger.info("files is not dict: %s", d.name)
             return False
         for filename in sorted(d.files):
             if len(name) == 0:
@@ -1008,26 +1003,25 @@ def try_per_category(
                 if float(rsync[key]['size']) != float(d.files[filename]['size']) \
                         and not rsync[key]['mode'].startswith('l'):
                     # ignore symlink size differences
-                    logger.debug(
-                        'rsync: file size mismatch %s %s != %s\n'
-                        % (filename, d.files[filename]['size'],
-                           rsync[key]['size']))
+                    logger.info(
+                        "rsync: file size mismatch %s %s != %s.",
+                        filename, d.files[filename]['size'], rsync[key]['size']
+                    )
                     all_files = False
                     break
             except ValueError:  # one of the conversion to float() failed
-                msg = 'Invalid size value for file %s, expect=%s, actual=%s\n' % ( \
-                    key, rsync[key]['size'], d.files[filename]['size'])
-                logger.debug(msg)
+                logger.info(
+                    "Invalid size value for file %s, expect=%s, actual=%s",
+                    key, rsync[key]['size'], d.files[filename]['size']
+                )
                 all_files = False
                 break
             except KeyError:  # file is not in the rsync listing
-                msg = 'Missing remote file %s\n' % key
-                logger.debug(msg)
+                logger.info("Missing remote file: %s", key)
                 all_files = False
                 break
             except:  # something else went wrong
-                exception_msg = "Exception caught in try_per_category()\n"
-                logger.exception(exception_msg)
+                logger.info("Exception caught: %s", key)
                 all_files = False
                 break
 
@@ -1074,7 +1068,7 @@ def try_per_dir(d, hoststate, url):
             continue
         fields = line.split()
         try:
-            results[fields[8]] = {'size': fields[4]}
+            results[fields[8]] = {'size': fields[4].replace(',', '')}
         except IndexError: # line doesn't have 8 fields, it's not a dir line
             pass
 
@@ -1409,7 +1403,7 @@ def per_host(session, host, options, config):
             timeout_check()
 
             if not d.readable:
-                logger.debug("unreadable")
+                logger.info("unreadable, %s", d.name)
                 continue
 
             if options.repodata:
@@ -1427,12 +1421,12 @@ def per_host(session, host, options, config):
                 logger.debug("has_all_files = %r" % has_all_files)
 
                 if has_all_files == False:
-                    logger.warning("Not up2date: %s" % (d.name))
+                    logger.warning("Not up2date: %s", d.name)
                     host_category_dirs[(hc, d)] = False
 
                 elif has_all_files == True:
                     host_category_dirs[(hc, d)] = True
-                    logger.info(url)
+                    #logger.info(url)
                     # make sure our parent dirs appear on the list too
                     host_category_dirs = add_parents(
                         session, host_category_dirs, hc, d)
@@ -1446,9 +1440,10 @@ def per_host(session, host, options, config):
                 if try_later_delay > 1:
                     try_later_delay = try_later_delay >> 1
             except TryLater:
-                msg = "Server load exceeded on %r - try later (%s seconds)" % (
-                    host, try_later_delay)
-                logger.warning(msg)
+                logger.warning(
+                    "Server load exceeded on %r - try later (%s seconds): %s",
+                    host, try_later_delay, url
+                )
                 if categoryUrl.startswith('http') \
                         and not hoststate.keepalives_available:
                     logger.warning(
@@ -1461,9 +1456,10 @@ def per_host(session, host, options, config):
             except TimeoutException:
                 # If the crawl of only one category fails, the host
                 # is completely marked as not being up to date.
+                logger.exception("tiemout: %s", url)
                 raise
             except:
-                logger.exception("Unhandled exception raised.")
+                logger.exception("Unhandled exception raised. %s", url)
                 mark_not_up2date(
                     session, config,
                     sys.exc_info(), host, "Unhandled exception raised.  "
