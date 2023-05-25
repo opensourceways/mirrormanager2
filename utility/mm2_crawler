@@ -627,8 +627,6 @@ def check_head(hoststate, url, filedata, recursion, readable, retry=0):
     if len(fragment) > 0:
         reqpath += "#%s" % fragment
 
-    logger.info("check_head, reqpath=%s", reqpath)
-
     r = None
     try:
         conn.request('HEAD', reqpath,
@@ -641,7 +639,7 @@ def check_head(hoststate, url, filedata, recursion, readable, retry=0):
         status = r.status
     except:
         #print("check_head, send request failed...")
-        logger.warning("check_head, send request failed")
+        logger.warning("check_head, reqpath=%s, send request failed", reqpath)
 
         if retry == 0:
             # If the above attempt to connect to the mirror fails, the crawler
@@ -667,8 +665,6 @@ def check_head(hoststate, url, filedata, recursion, readable, retry=0):
 
     #last_modified  = r.getheader('Last-Modified')
 
-    logger.info("check_head, status=%d", status)
-
     if status >= 200 and status < 300:
         # lighttpd returns a Content-Length for directories
         # apache and nginx do not
@@ -686,6 +682,9 @@ def check_head(hoststate, url, filedata, recursion, readable, retry=0):
             return True
         else:
             return False
+
+    logger.warning("check_head, reqpath=%s, status=%d", reqpath, status)
+
     if status >= 300 and status < 400:
         return handle_redirect(
             hoststate, url, r.getheader('Location'), filedata, recursion,
@@ -704,7 +703,6 @@ def check_head(hoststate, url, filedata, recursion, readable, retry=0):
     elif status >= 500:
         raise HTTP500()
 
-    logger.info("status = %s" % status)
     raise HTTPUnknown()
 
 
@@ -880,6 +878,7 @@ def try_per_file(d, hoststate, url):
             exists = check_url(
                 hoststate, graburl, d.files[filename], 0, d.readable)
             if exists == False:
+                logger.info("check url, not exists, %s", graburl)
                 return False
         except TryLater:
             raise
@@ -897,6 +896,7 @@ def try_per_file(d, hoststate, url):
             except:
                 pass
             if exists == False:
+                logger.info("sha256 is unmatched, %s/%s", d.name, filename)
                 return False
 
     if exists is None:
@@ -1004,8 +1004,9 @@ def try_per_category(
                         and not rsync[key]['mode'].startswith('l'):
                     # ignore symlink size differences
                     logger.info(
-                        "rsync: file size mismatch %s %s != %s.",
-                        filename, d.files[filename]['size'], rsync[key]['size']
+                        "rsync: file size mismatch %s/%s %s != %s.",
+                        name, filename, d.files[filename]['size'],
+                        rsync[key]['size']
                     )
                     all_files = False
                     break
@@ -1058,6 +1059,7 @@ def try_per_dir(d, hoststate, url):
         return None
 
     if len(listing) == 0:
+        logger.info("listing is empty: %s", url)
         return False
 
     # Check if maximum crawl time for this host has been reached
@@ -1076,13 +1078,20 @@ def try_per_dir(d, hoststate, url):
     # of the current directory. umdl copies the pickled dict
     # into the database. It is either a dict or nothing.
     if not isinstance(d.files, dict):
+        logger.info("d.files is not dict: %s", d.name)
         return False
     for filename in d.files:
         try:
             if (float(results[filename]['size']) !=
                     float(d.files[filename]['size'])):
+                logger.info(
+                    "file size is not equal, %s/%s, %s != %s",
+                    d.name, filename, results[filename]['size'],
+                    d.files[filename]['size']
+                )
                 return False
         except:
+            logger.info("except happened, %s/%s", d.name, filename)
             return False
     return True
 
