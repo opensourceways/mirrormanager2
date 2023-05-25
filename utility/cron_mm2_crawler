@@ -42,7 +42,7 @@ do
     SECONDS=0
 
     # avoid the python threads to be blocked by timeout
-    timeout -k 10 12h ./mm2_crawler -c config/mirrormanager2.cfg --include-private -t $threads --disable-fedmsg > ./crawler_log 2>&1
+    timeout -k 10 12h ./mm2_crawler -c config/mirrormanager2.cfg --include-private -t $threads --disable-fedmsg > /dev/null 2>&1
 
     seconds=$SECONDS
     log "mm2_crawler done after $seconds seconds"
