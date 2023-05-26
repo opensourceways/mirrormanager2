@@ -169,7 +169,8 @@ def doit(options, config):
         admin_active=True, user_active=True, site_private=False,
         site_user_active=True, site_admin_active=True)
 
-    print("hosts = ", hosts)
+    for host in hosts:
+        logger.info("will scan host: %s", host.name)
 
     # Get a list of host names for fedmsg
     host_names = [
