@@ -740,6 +740,9 @@ def parse_rsync_listing(session, config, category, f):
     sync_category_directories(
         session, config, diskpath, category, category_directories)
 
+    if category.delete_directories:
+        nuke_gone_directories(session, diskpath, category)
+
 
 def sync_directories_using_rsync(session, config, rsyncpath, category):
     try:
