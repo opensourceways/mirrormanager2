@@ -994,6 +994,12 @@ def try_per_category(
         if not isinstance(d.files, dict):
             logger.info("files is not dict: %s", d.name)
             return False
+
+        if len(d.files) == 0:
+            # set None to consist with try_per_file
+            host_category_dirs[(hc, d)] = None
+            continue
+
         for filename in sorted(d.files):
             if len(name) == 0:
                 key = filename
