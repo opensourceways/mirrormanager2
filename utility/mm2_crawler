@@ -782,7 +782,8 @@ def sync_hcds(session, host, host_category_dirs, options):
 
     # In repodata mode we only want to update the files actually scanned.
     # Do not mark files which have not been scanned as not being up to date.
-    if not options.repodata:
+    # if not options.repodata:
+    if True:
         # now-historical HostCategoryDirs are not up2date
         # we wait for a cascading Directory delete to delete this
         host_categories_to_scan = select_host_categories_to_scan(
@@ -793,10 +794,16 @@ def sync_hcds(session, host, host_category_dirs, options):
                     stats['unreadable'] += 1
                     continue
                 if hcd not in current_hcds:
+                    session.delete(hcd)
+                    logger.info("delete %s by master", hcd.path)
+                    stats['deleted_on_master'] += 1
+
+                    '''
                     if hcd.up2date != False:
                         hcd.up2date = False
                         session.add(hcd)
                         stats['deleted_on_master'] += 1
+                    '''
     session.commit()
     report_stats(stats)
     del current_hcds
