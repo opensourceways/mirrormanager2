@@ -2,10 +2,7 @@
 
 cd $(dirname $0)
 
-excludes=""
-if [ $# -ge 1 ]; then
-    excludes=$1
-fi
+interval=${1:-1500} # seconds
 
 ###
 
@@ -20,26 +17,19 @@ prefix=$(dirname $prefix)
 
 sed -i "s|{UMDL_PREFIX}|$prefix|"  $f
 sed -i "s|{DB_URL}|$DB_URL|"  $f
-sed -i "s|{SECRET_KEY}|$SECRET_KEY|"  $f
-sed -i "s|{PASSWORD_SEED}|$PASSWORD_SEED|"  $f
+sed -i "s/{SECRET_KEY}//"  $f
+sed -i "s/{PASSWORD_SEED}//"  $f
+sed -i "s/{EXCLUDES}//"  $f
 
 mm_log_dir=$(pwd)/logs
 mkdir -p $mm_log_dir/crawler
 sed -i "s|{MM_LOG_DIR}|$mm_log_dir|"  $f
-
-if [ -z $excludes ]; then
-    sed -i "s/{EXCLUDES}//"  $f
-else
-    sed -i "s/{EXCLUDES}/\"$excludes\"/"  $f
-fi
 
 ###
 
 log() {
     echo "$(date), $1"
 }
-
-secondsOf2h=7200
 
 set +e
 
@@ -49,12 +39,12 @@ do
 
     SECONDS=0
 
-    timeout -k 10 2h ./mm2_update-master-directory-list -c ./config/mirrormanager2.cfg --logfile log --delete-directories > /dev/null 2>&1
+    timeout -k 10 ${interval}s ./mm2_update-master-directory-list -c ./config/mirrormanager2.cfg --logfile log > /dev/null 2>&1
 
     seconds=$SECONDS
     log "mm2_update-master-directory-list done after $seconds seconds"
 
-    if [ $seconds -lt $secondsOf2h ]; then
-        sleep $(($secondsOf2h - $seconds))
+    if [ $seconds -lt $interval ]; then
+        sleep $(($interval - $seconds))
     fi
 done

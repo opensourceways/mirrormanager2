@@ -2,21 +2,16 @@
 
 cd $(dirname $0)
 
+interval=${1:-43200} # seconds
+
 ###
 
 f=config/mirrormanager2.cfg
 
-prefix=$UMDL_PREFIX
-if [ "$(basename $prefix)" != "openeuler" ]; then
-    echo "invalid UMDL_PREFIX: $UMDL_PREFIX"
-    exit 1
-fi
-prefix=$(dirname $prefix)
-
-sed -i "s|{UMDL_PREFIX}|$prefix|"  $f
+sed -i "s/{UMDL_PREFIX}//"  $f
 sed -i "s|{DB_URL}|$DB_URL|"  $f
-sed -i "s|{SECRET_KEY}|$SECRET_KEY|"  $f
-sed -i "s|{PASSWORD_SEED}|$PASSWORD_SEED|"  $f
+sed -i "s/{SECRET_KEY}//"  $f
+sed -i "s/{PASSWORD_SEED}//"  $f
 sed -i "s/{EXCLUDES}//"  $f
 
 mm_log_dir=$(pwd)/logs
@@ -28,8 +23,6 @@ sed -i "s|{MM_LOG_DIR}|$mm_log_dir|"  $f
 log() {
     echo "$(date), $1"
 }
-
-secondsOf12h=43200
 
 set +e
 
@@ -45,12 +38,12 @@ do
     SECONDS=0
 
     # avoid the python threads to be blocked by timeout
-    timeout -k 10 12h ./mm2_crawler -c config/mirrormanager2.cfg --include-private -t $threads --disable-fedmsg --repodata > ./crawler_logs 2>&1
+    timeout -k 10 ${interval}s ./mm2_crawler -c config/mirrormanager2.cfg --include-private -t $threads --disable-fedmsg --repodata > ./crawler_logs 2>&1
 
     seconds=$SECONDS
     log "mm2_crawler done after $seconds seconds"
 
-    if [ $seconds -lt $secondsOf12h ]; then
-        sleep $(($secondsOf12h - $seconds))
+    if [ $seconds -lt $interval ]; then
+        sleep $(($interval - $seconds))
     fi
 done
